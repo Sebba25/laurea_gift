@@ -2,29 +2,61 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cruciverba Interattivo</title>
   <style>
-    :root{--bg:#fafafa;--ink:#333;--ink-muted:#666;--ok:#b3ffb3;--grid:#000}
+    :root{
+      --bg:#fafafa; --ink:#333; --ok:#b3ffb3; --grid:#000;
+      --cell: 38px; /* desktop cell size */
+    }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:28px}
-    .wrap{display:flex;gap:28px}
-    .panel{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:18px}
-    .grid{display:grid;grid-template-columns:repeat(13,38px);grid-template-rows:repeat(13,38px);gap:2px;background:#000;padding:4px;border-radius:10px}
-    .cell{width:38px;height:38px;background:#fff;position:relative;display:flex;align-items:center;justify-content:center}
-    .black{background:#000}
-    .num{position:absolute;top:2px;left:3px;font-size:10px;color:#444}
-    .cell input{width:100%;height:100%;border:none;background:transparent;text-align:center;text-transform:uppercase;font-weight:700;font-size:18px}
-    .correct{background:var(--ok)!important;transition:background .25s}
-    .cluebox{min-width:420px}
-    h2{margin:0 0 12px 0;font-size:22px}
-    .clues{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-    .clues h3{margin:0 0 8px 0;font-size:14px;text-transform:uppercase;color:#666}
-    .clues ul{list-style:none;margin:0;padding:0}
-    .clues li{margin:14px 0;color:#222;cursor:pointer}
-    .toolbar{display:flex;gap:10px;margin-top:14px}
-    .btn{background:#eee;border:1px solid #ddd;border-radius:8px;padding:8px 12px;cursor:pointer}
-    .msg{display:none;margin-top:12px;padding:10px;border-radius:10px;background:var(--ok);font-weight:700;text-align:center}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex; justify-content:center; align-items:flex-start;
+      padding:28px; gap:28px;
+    }
+    .wrap{ display:flex; gap:28px; flex-wrap:wrap; }
+    .panel{ background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.08); padding:18px; }
+    .panel:first-child{ overflow-x:auto; } /* allow sideways scroll on tiny phones */
+
+    /* GRID */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(13, var(--cell));
+      grid-template-rows:repeat(13, var(--cell));
+      gap:2px; background:#000; padding:4px; border-radius:10px;
+    }
+    .cell{ width:var(--cell); height:var(--cell); background:#fff; position:relative; display:flex; align-items:center; justify-content:center; }
+    .black{ background:#000; }
+    .num{ position:absolute; top:2px; left:3px; font-size:10px; color:#444; user-select:none; }
+    .cell input{
+      width:100%; height:100%; border:none; background:transparent;
+      text-align:center; text-transform:uppercase; font-weight:700; font-size:18px;
+    }
+    .correct{ background:var(--ok)!important; transition:background .25s; }
+
+    /* CLUES */
+    .cluebox{ min-width:420px; }
+    .clues{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .clues h3{ margin:0 0 8px; font-size:14px; text-transform:uppercase; color:#666; }
+    .clues ul{ list-style:none; margin:0; padding:0; }
+    .clues li{ margin:14px 0; color:#222; cursor:pointer; }
+
+    .toolbar{ display:flex; gap:10px; margin-top:14px; }
+    .btn{ background:#eee; border:1px solid #ddd; border-radius:10px; padding:12px 14px; cursor:pointer; }
+    .msg{ display:none; margin-top:12px; padding:10px; border-radius:10px; background:var(--ok); font-weight:700; text-align:center; }
+
+    /* Responsive */
+    @media (max-width: 900px){ .cluebox{ min-width:100%; } }
+    @media (max-width: 640px){
+      :root{ --cell: clamp(26px, 7.5vw, 34px); }
+      body{ padding:16px; }
+      .wrap{ gap:16px; }
+      .btn{ width:100%; }
+      .clues{ grid-template-columns:1fr; gap:12px; }
+      .clues li{ font-size:16px; line-height:1.35; }
+    }
   </style>
 </head>
 <body>
@@ -50,76 +82,82 @@
         <button class="btn" onclick="resetGrid()">Reset</button>
       </div>
       <div id="win" class="msg">🎉 Cruciverba completato! 🎉</div>
-      <div id="formWrap" class="msg" style="background:#fff;display:none">
-        <h3 style="margin-top:0">Richiedi il premio</h3>
-        <iframe id="gform" src="" style="width:100%;height:520px;border:0;border-radius:10px"></iframe>
-      </div>
     </div>
   </div>
 
   <script>
-    // === EXACT WORDING / NUMBERING from your mock ===
+    // === Words & coordinates (13x13), with required intersections ===
     // Across: 1 MICHELE, 4 SOFIA, 7 ITALIANO, 8 ANDREA
     // Down:   2 CHIARA, 3 OSLO,   5 EDOARDO, 6 BARONE
-    // Coordinates chosen to match the visual layout you sent (13x13).
+    // Intersections ensured:
+    //  - ANDREA 'D' ↔ EDOARDO final 'D' (row 8, col 7)
+    //  - BARONE 'O' ↔ ITALIANO final 'O' (row 6, col 9)
+    //  - BARONE 'E' ↔ ANDREA 'E' (row 8, col 9)
     const entries = [
-      // Across (targeted to satisfy intersections)
       {num:1, dir:'A', row:1, col:2, answer:'MICHELE',  clue:'Si usa per indicare una media alta'},
       {num:4, dir:'A', row:3, col:1, answer:'SOFIA',    clue:'Organizzatrice di eventi'},
       {num:7, dir:'A', row:6, col:2, answer:'ITALIANO', clue:'Ci ha insegnato a distinguere cani e gatti'},
       {num:8, dir:'A', row:8, col:5, answer:'ANDREA',   clue:'Panino speciale e pizza bianca'},
-      // Down
       {num:2, dir:'D', row:1, col:4, answer:'CHIARA',   clue:'Anche se urla non si sente'},
       {num:3, dir:'D', row:2, col:1, answer:'OSLO',     clue:'La meta erasmus preferita dalle luissine'},
       {num:5, dir:'D', row:3, col:7, answer:'EDOARDO',  clue:'Sinonimo di massa'},
-      {num:6, dir:'D', row:3, col:9, answer:'BARONE',   clue:'Il ristorante preferito dalla Finocchi'}
+      {num:6, dir:'D', row:3, col:9, answer:'BARONE',   clue:'Dove mangiarsi un bel piatto di pasta?'}
     ];
 
-    const R=13,C=13; // grid size
+    const R=13,C=13;
 
-    // Build sets for white cells and numbering, and a map of which entries use a cell
+    // Build sets/mappings
     const whites = new Set();
     const nums = {};
     const cellToEntries = {};
     entries.forEach((e, idx) => {
       nums[`${e.row}-${e.col}`] = e.num;
-      const L = e.answer.length;
-      for (let i=0;i<L;i++){
-        const r = e.dir==='A' ? e.row : e.row + i;
-        const c = e.dir==='A' ? e.col + i : e.col;
+      for (let i=0; i<e.answer.length; i++){
+        const r = e.dir==='A'? e.row : e.row+i;
+        const c = e.dir==='A'? e.col+i : e.col;
         const k = `${r}-${c}`;
         whites.add(k);
-        if(!cellToEntries[k]) cellToEntries[k] = [];
-        cellToEntries[k].push({ idx, pos:i });
+        (cellToEntries[k] ||= []).push({ idx, pos:i });
       }
     });
 
     // Render grid
     const grid = document.getElementById('grid');
-    let activeEntry = null; // index into entries
-    let activeDir = 'A';
-    let currentPos = 0;
+    let activeEntry = null, activeDir = 'A', currentPos = 0;
 
     for(let r=1;r<=R;r++){
       for(let c=1;c<=C;c++){
         const k = `${r}-${c}`;
         const cell = document.createElement('div');
-        if(whites.has(k)){
+        if (whites.has(k)) {
           cell.className = 'cell';
           const inp = document.createElement('input');
-          inp.id = k; inp.maxLength = 1; inp.autocomplete = 'off';
+          inp.id = k; inp.maxLength = 1;
+          inp.autocomplete = 'off';
+          inp.autocapitalize = 'characters';
+          inp.spellcheck = false;
+          inp.setAttribute('inputmode','text');
+
           inp.addEventListener('focus', ()=>selectEntryFromCell(r,c));
-          inp.addEventListener('input', e=>{ e.target.value = e.target.value.toUpperCase(); moveNextInEntry(); });
+          inp.addEventListener('input', e=>{
+            e.target.value = e.target.value.toUpperCase();
+            moveNextInEntry();
+          });
           inp.addEventListener('keydown', e=>{
             if(e.key==='Backspace' && !e.target.value){ movePrevInEntry(); e.preventDefault(); }
             if(e.key==='ArrowRight'){ activeDir='A'; moveNextInEntry(); e.preventDefault(); }
-            if(e.key==='ArrowLeft'){  activeDir='A'; movePrevInEntry(); e.preventDefault(); }
-            if(e.key==='ArrowDown'){  activeDir='D'; moveNextInEntry(); e.preventDefault(); }
-            if(e.key==='ArrowUp'){    activeDir='D'; movePrevInEntry(); e.preventDefault(); }
+            if(e.key==='ArrowLeft' ){ activeDir='A'; movePrevInEntry(); e.preventDefault(); }
+            if(e.key==='ArrowDown' ){ activeDir='D'; moveNextInEntry(); e.preventDefault(); }
+            if(e.key==='ArrowUp'   ){ activeDir='D'; movePrevInEntry(); e.preventDefault(); }
             if(e.key===' '){ activeDir = (activeDir==='A' ? 'D' : 'A'); e.preventDefault(); }
           });
+
           cell.appendChild(inp);
-          if(nums[k]){ const n=document.createElement('span'); n.className='num'; n.textContent=nums[k]; cell.appendChild(n); }
+          if (nums[k]) {
+            const n = document.createElement('span');
+            n.className='num'; n.textContent = nums[k];
+            cell.appendChild(n);
+          }
         } else {
           cell.className = 'cell black';
         }
@@ -127,52 +165,61 @@
       }
     }
 
-    // Clue lists (click to focus first letter of that entry)
+    // Clue lists (click to focus)
     const acrossUL = document.getElementById('across');
     const downUL   = document.getElementById('down');
     entries.filter(e=>e.dir==='A').forEach(e=>{
-      const li=document.createElement('li'); li.textContent=`${e.num}  ${e.clue}`;
-      li.onclick=()=>{ activeEntry = entries.indexOf(e); activeDir='A'; focusEntryPos(0); };
+      const li=document.createElement('li');
+      li.textContent = `${e.num}  ${e.clue}`;
+      li.onclick = ()=>{ activeEntry = entries.indexOf(e); activeDir='A'; focusEntryPos(0); };
       acrossUL.appendChild(li);
     });
     entries.filter(e=>e.dir==='D').forEach(e=>{
-      const li=document.createElement('li'); li.textContent=`${e.num}  ${e.clue}`;
-      li.onclick=()=>{ activeEntry = entries.indexOf(e); activeDir='D'; focusEntryPos(0); };
+      const li=document.createElement('li');
+      li.textContent = `${e.num}  ${e.clue}`;
+      li.onclick = ()=>{ activeEntry = entries.indexOf(e); activeDir='D'; focusEntryPos(0); };
       downUL.appendChild(li);
     });
 
+    // Helpers
     function getInput(r,c){ return document.getElementById(`${r}-${c}`); }
+    function scrollCellIntoView(r,c){
+      const el = getInput(r,c); if(!el) return;
+      el.parentElement.scrollIntoView({block:'nearest', inline:'nearest'});
+    }
 
     function focusEntryPos(pos){
       const e = entries[activeEntry]; if(!e) return;
       currentPos = Math.max(0, Math.min(pos, e.answer.length-1));
       const r = e.dir==='A' ? e.row : e.row + currentPos;
       const c = e.dir==='A' ? e.col + currentPos : e.col;
-      getInput(r,c)?.focus();
+      const input = getInput(r,c);
+      input?.focus();
+      scrollCellIntoView(r,c);
     }
-
     function selectEntryFromCell(r,c){
       const opts = cellToEntries[`${r}-${c}`];
       if(!opts || !opts.length){ activeEntry=null; return; }
       const pick = opts.find(o=>entries[o.idx].dir===activeDir) || opts[0];
       activeEntry = pick.idx; currentPos = pick.pos;
     }
-
     function moveNextInEntry(){ const e=entries[activeEntry]; if(!e) return; focusEntryPos(currentPos+1); }
     function movePrevInEntry(){ const e=entries[activeEntry]; if(!e) return; focusEntryPos(currentPos-1); }
 
     function checkAll(){
       let all=true;
       entries.forEach(e=>{
-        const L=e.answer.length; let got='';
-        for(let i=0;i<L;i++){
-          const r=e.dir==='A'?e.row: e.row+i; const c=e.dir==='A'? e.col+i: e.col;
+        let got='';
+        for(let i=0;i<e.answer.length;i++){
+          const r=e.dir==='A'?e.row: e.row+i;
+          const c=e.dir==='A'?e.col+i: e.col;
           got += (getInput(r,c)?.value||'').toUpperCase();
         }
         const ok = got===e.answer.toUpperCase();
-        for(let i=0;i<L;i++){
-          const r=e.dir==='A'?e.row: e.row+i; const c=e.dir==='A'? e.col+i: e.col;
-          const cell=getInput(r,c)?.parentElement; cell?.classList.toggle('correct', ok);
+        for(let i=0;i<e.answer.length;i++){
+          const r=e.dir==='A'?e.row: e.row+i;
+          const c=e.dir==='A'?e.col+i: e.col;
+          getInput(r,c)?.parentElement.classList.toggle('correct', ok);
         }
         if(!ok) all=false;
       });
@@ -181,9 +228,9 @@
 
     function revealOne(){
       for(const e of entries){
-        const L=e.answer.length;
-        for(let i=0;i<L;i++){
-          const r=e.dir==='A'?e.row: e.row+i; const c=e.dir==='A'? e.col+i: e.col;
+        for(let i=0;i<e.answer.length;i++){
+          const r=e.dir==='A'?e.row: e.row+i;
+          const c=e.dir==='A'?e.col+i: e.col;
           const inp=getInput(r,c);
           if(inp && !inp.value){ inp.value = e.answer[i].toUpperCase(); inp.focus(); return; }
         }
@@ -193,25 +240,20 @@
     function resetGrid(){
       document.querySelectorAll('.cell input').forEach(i=>{ i.value=''; i.parentElement.classList.remove('correct'); });
       document.getElementById('win').style.display='none';
-      document.getElementById('formWrap').style.display='none';
     }
 
     function onSolved() {
-      // show success briefly
-      const win = document.getElementById('win');
-      if (win) win.style.display = 'block';
-
-      if (GOOGLE_FORM_LINK) {
-        // small pause so they see it worked, then redirect
-        setTimeout(() => {
-          // prefer assign() so it’s not blocked like a popup
-          window.location.assign(GOOGLE_FORM_LINK);
-        }, 900);
-      }
+    const win = document.getElementById('win');
+    if (win) {
+        win.innerHTML = '🎉 Cruciverba completato! <br><br><button id="goForm" class="btn">Vai al modulo</button>';
+        win.style.display = 'block';
+        document.getElementById('goForm').onclick = () => window.location.replace(GOOGLE_FORM_LINK);
+  }
 }
+    
 
-    // Set your Google Form link here (or leave blank to hide)
-    const GOOGLE_FORM_LINK = "https://docs.google.com/forms/d/e/1FAIpQLSfAF6mUw5lEj4eH4f8CxdeJ1yG1CTHYvMjO-XNOvUKpNmfhPw/viewform?usp=dialog"; // es: "https://forms.gle/xxxx"
+    // ✅ Put your Google Form link here
+    const GOOGLE_FORM_LINK = "https://docs.google.com/forms/d/e/1FAIpQLSfAF6mUw5lEj4eH4f8CxdeJ1yG1CTHYvMjO-XNOvUKpNmfhPw/viewform?usp=dialog";
   </script>
 </body>
 </html>
