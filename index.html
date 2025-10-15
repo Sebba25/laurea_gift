@@ -196,16 +196,22 @@
       document.getElementById('formWrap').style.display='none';
     }
 
-    function onSolved(){
-      document.getElementById('win').style.display='block';
-      if(GOOGLE_FORM_LINK){
-        document.getElementById('gform').src = GOOGLE_FORM_LINK;
-        document.getElementById('formWrap').style.display='block';
+    function onSolved() {
+      // show success briefly
+      const win = document.getElementById('win');
+      if (win) win.style.display = 'block';
+
+      if (GOOGLE_FORM_LINK) {
+        // small pause so they see it worked, then redirect
+        setTimeout(() => {
+          // prefer assign() so it’s not blocked like a popup
+          window.location.assign(GOOGLE_FORM_LINK);
+        }, 900);
       }
-    }
+}
 
     // Set your Google Form link here (or leave blank to hide)
-    const GOOGLE_FORM_LINK = ""; // es: "https://forms.gle/xxxx"
+    const GOOGLE_FORM_LINK = "https://docs.google.com/forms/d/e/1FAIpQLSfAF6mUw5lEj4eH4f8CxdeJ1yG1CTHYvMjO-XNOvUKpNmfhPw/viewform?usp=dialog"; // es: "https://forms.gle/xxxx"
   </script>
 </body>
 </html>
