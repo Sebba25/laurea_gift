@@ -6,7 +6,7 @@
   <title>Cruciverba Interattivo</title>
   <style>
     :root{
-      --bg:#fafafa; --ink:#333; --ok:#b3ffb3; --grid:#000;
+      --bg:#fafafa; --ink:#333; --ok:#b3ffb3;
       --cell: 38px; /* desktop cell size */
     }
     *{box-sizing:border-box}
@@ -18,13 +18,13 @@
     }
     .page{
       max-width: 1200px;
-      margin: 0 auto;                 /* <-- centers the whole layout */
+      margin: 0 auto;                      /* center page */
       padding: 28px clamp(16px, 4vw, 28px);
     }
 
     .wrap{
       display:flex; gap:28px; flex-wrap:wrap;
-      justify-content: center;         /* <-- centers panels on the row */
+      justify-content:center;              /* center panels */
       align-items:flex-start;
     }
 
@@ -33,15 +33,17 @@
       box-shadow:0 2px 10px rgba(0,0,0,.08);
       padding:18px;
     }
-    .panel:first-child{ overflow-x:auto; } /* allow sideways scroll on tiny phones */
+    /* avoid horizontal panning artifacts */
+    .panel:first-child{ overflow-x:hidden; }
 
-    /* GRID */
+    /* GRID — shrink-to-fit so Safari doesn't draw a ghost grid */
     .grid{
-      display:grid;
+      display:inline-grid;                 /* <- key fix */
+      width:max-content;                  /* <- key fix */
       grid-template-columns:repeat(13, var(--cell));
       grid-template-rows:repeat(13, var(--cell));
       gap:2px; background:#000; padding:4px; border-radius:10px;
-      margin: 0 auto;                  /* <-- centers the grid in its panel */
+      margin:0 auto;                      /* center grid inside panel */
     }
     .cell{ width:var(--cell); height:var(--cell); background:#fff; position:relative; display:flex; align-items:center; justify-content:center; }
     .black{ background:#000; }
@@ -64,9 +66,7 @@
     .msg{ display:none; margin-top:12px; padding:10px; border-radius:10px; background:var(--ok); font-weight:700; text-align:center; }
 
     /* Responsive */
-    @media (max-width: 900px){
-      .cluebox{ min-width:100%; }
-    }
+    @media (max-width: 900px){ .cluebox{ min-width:100%; } }
     @media (max-width: 640px){
       :root{ --cell: clamp(26px, 7.5vw, 34px); }
       .btn{ width:100%; }
@@ -260,13 +260,11 @@
       document.getElementById('win').style.display='none';
     }
 
-    function onSolved() {
+    function onSolved(){
+      // Synchronous redirect (works well on Safari)
+      if (GOOGLE_FORM_LINK) window.location.replace(GOOGLE_FORM_LINK);
       const win = document.getElementById('win');
-      if (win) {
-        win.innerHTML = '🎉 Cruciverba completato! <br><br><button id="goForm" class="btn">Vai al modulo</button>';
-        win.style.display = 'block';
-        document.getElementById('goForm').onclick = () => window.location.replace(GOOGLE_FORM_LINK);
-      }
+      if (win) win.style.display = 'block';
     }
 
     // Put your Google Form link here
